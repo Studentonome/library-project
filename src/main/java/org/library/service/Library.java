@@ -88,6 +88,13 @@ public class Library {
                 .toList();
     }
 
+    /** @return список книг, доступных для выдачи (книги, не находящиеся на руках) */
+    public List<Book> getAvailableBooks() {
+        return bookRepository.getAll().stream()
+                .filter(book -> !book.isBorrowed())
+                .toList();
+    }
+
     /** @return true, если ISBN книги корректен (по стандарту ISBN-10/ISBN-13) */
     public boolean isIsbnValid(Book book) {
         return ISBN_VALIDATOR.isValid(book.getIsbn());
