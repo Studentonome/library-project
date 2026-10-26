@@ -8,6 +8,7 @@ import org.library.repository.ReaderRepository;
 import org.library.repository.ReaderRepositoryImpl;
 import org.library.service.Library;
 import org.library.exception.BookAlreadyBorrowedException;
+import org.library.exception.BookNotBorrowedException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class LibraryTest {
 
@@ -75,4 +78,26 @@ class LibraryTest {
                 () -> library.borrowBook(book1.getId(), reader2.getId()),
                 "книга с чужих рук не должна выдаваться другому читателю");
     }
+
+    // возврат книги делает её снова доступной
+    @Test
+    void borrowedBookIsReturnedSuccessfully() {
+        library.borrowBook(book1.getId(), reader1.getId());
+
+        library.returnBook(book1.getId());
+
+        Book returned = library.getBookById(book1.getId());
+        assertFalse(returned.isBorrowed(), "после возврата книга должна быть свободной");
+        assertNull(returned.getReaderId(), "у возвращённой книги не должно оставаться readerId");
+        assertTrue(library.getBorrowedBooks().isEmpty(), "возвращённой книги не должно быть в списке выданных");
+    }
+
+    // свободную книгу нельзя вернуть
+    @Test
+    void returningFreeBookThrowsException() {
+        assertThrows(BookNotBorrowedException.class,
+                () -> library.returnBook(book1.getId()),
+                "возврат свободной книги должен выбрасывать исключение");
+    }
+
 }
