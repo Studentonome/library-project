@@ -100,4 +100,15 @@ class LibraryTest {
                 "возврат свободной книги должен выбрасывать исключение");
     }
 
+    // список доступных книг не содержит выданных экземпляров
+    @Test
+    void availableBooksAreReturned() {
+        library.borrowBook(book1.getId(), reader1.getId());
+
+        List<Book> available = library.getAvailableBooks();
+        assertEquals(2, available.size(), "должны остаться только свободные книги");
+        assertTrue(available.stream().noneMatch(Book::isBorrowed), "в списке не должно быть занятых книг");
+        assertTrue(available.stream().noneMatch(b -> b.getId() == book1.getId()),
+                "выданная книга не должна попадать в список доступных");
+    }
 }
