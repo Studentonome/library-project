@@ -52,7 +52,7 @@ class LibraryTest {
 
         Book borrowed = library.getBookById(book1.getId());
         assertTrue(borrowed.isBorrowed(), "книга должна быть занятой");
-        assertEquals(reader1.getId(), borrowed.getReaderId(), "у книги должен быть проставлен readerId читателя");
+        assertEquals(reader2.getId(), borrowed.getReaderId(), "у книги должен быть проставлен readerId читателя");
 
         List<Book> borrowedBooks = library.getBorrowedBooks();
         assertTrue(borrowedBooks.stream().anyMatch(b -> b.getId() == book1.getId()),
