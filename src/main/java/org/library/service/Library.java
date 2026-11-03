@@ -37,7 +37,8 @@ public class Library {
         bookRepository.add(book);
     }
 
-    public void borrowBook(long bookId, long readerId) {
+    public void borrowBook(long bookId, long readerId)
+    {
         LOG.info("Запрос на выдачу книги: bookId={}, readerId={}", bookId, readerId);
 
         try {
