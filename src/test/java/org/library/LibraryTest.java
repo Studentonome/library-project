@@ -35,52 +35,48 @@ class LibraryTest {
         ReaderRepository readerRepository = new ReaderRepositoryImpl();
         library = new Library(bookRepository, readerRepository);
 
-        reader1 = new Reader(1, "T-001", "Иван Иванов", "+375-900-22-33", "ivanov@mail.ru");
-        reader2 = new Reader(2, "T-002", "Мария Петрова", "+375-900-55-66", null);
+        reader1 = new Reader(1, "T-001", "Ivan Ivanov", "+375-900-22-33", "ivanov@mail.ru");
+        reader2 = new Reader(2, "T-002", "Maria Petrova", "+375-900-55-66", null);
         library.addReader(reader1);
         library.addReader(reader2);
 
-        book1 = new Book(1, "Война и мир", "Лев Толстой", "978-5-00000-001-1", 1869);
+        book1 = new Book(1, "War and Peace", "Leo Tolstoy", "978-5-00000-001-1", 1869);
         library.addBook(book1);
-        library.addBook(new Book(2, "Преступление и наказание", "Фёдор Достоевский", "978-5-00000-002-8", 1866));
-        library.addBook(new Book(3, "Мастер и Маргарита", "Михаил Булгаков", "978-5-00000-003-5", 1967));
+        library.addBook(new Book(2, "Crime and Punishment", "Fyodor Dostoevsky", "978-5-00000-002-8", 1866));
+        library.addBook(new Book(3, "The Master and Margarita", "Mikhail Bulgakov", "978-5-00000-003-5", 1967));
     }
 
-    // доступная книга успешно выдаётся читателю
     @Test
     void availableBookIsBorrowedSuccessfully() {
         library.borrowBook(book1.getId(), reader1.getId());
 
         Book borrowed = library.getBookById(book1.getId());
-        assertTrue(borrowed.isBorrowed(), "книга должна быть занятой");
-        assertEquals(reader1.getId(), borrowed.getReaderId(), "у книги должен быть проставлен readerId читателя");
+        assertTrue(borrowed.isBorrowed(), "book must be borrowed");
+        assertEquals(reader1.getId(), borrowed.getReaderId(), "readerId must be set on the book");
 
         List<Book> borrowedBooks = library.getBorrowedBooks();
         assertTrue(borrowedBooks.stream().anyMatch(b -> b.getId() == book1.getId()),
-                "книга должна появиться в списке getBorrowedBooks()");
+                "book must appear in getBorrowedBooks()");
     }
 
-    // уже занятую книгу нельзя взять повторно (тем же читателем)
     @Test
     void alreadyBorrowedBookCannotBeBorrowedBySameReader() {
         library.borrowBook(book1.getId(), reader1.getId());
 
         assertThrows(BookAlreadyBorrowedException.class,
                 () -> library.borrowBook(book1.getId(), reader1.getId()),
-                "повторная выдача той же книги должна выбрасывать исключение");
+                "borrowing the same book twice must throw an exception");
     }
 
-    // книга на руках у одного читателя не выдаётся другому
     @Test
     void borrowedBookCannotBeGivenToAnotherReader() {
         library.borrowBook(book1.getId(), reader1.getId());
 
         assertThrows(BookAlreadyBorrowedException.class,
                 () -> library.borrowBook(book1.getId(), reader2.getId()),
-                "книга с чужих рук не должна выдаваться другому читателю");
+                "a borrowed book must not be lent to another reader");
     }
 
-    // возврат книги делает её снова доступной
     @Test
     void borrowedBookIsReturnedSuccessfully() {
         library.borrowBook(book1.getId(), reader1.getId());
@@ -88,37 +84,35 @@ class LibraryTest {
         library.returnBook(book1.getId());
 
         Book returned = library.getBookById(book1.getId());
-        assertFalse(returned.isBorrowed(), "после возврата книга должна быть свободной");
-        assertNull(returned.getReaderId(), "у возвращённой книги не должно оставаться readerId");
-        assertTrue(library.getBorrowedBooks().isEmpty(), "возвращённой книги не должно быть в списке выданных");
+        assertFalse(returned.isBorrowed(), "after return the book must be free");
+        assertNull(returned.getReaderId(), "a returned book must not keep readerId");
+        assertTrue(library.getBorrowedBooks().isEmpty(), "the returned book must not be listed as borrowed");
     }
 
-    // свободную книгу нельзя вернуть
     @Test
     void returningFreeBookThrowsException() {
         assertThrows(BookNotBorrowedException.class,
                 () -> library.returnBook(book1.getId()),
-                "возврат свободной книги должен выбрасывать исключение");
+                "returning a free book must throw an exception");
     }
 
-    // сценарий ошибки: выдача книги несуществующему читателю журналируется уровнем ERROR
+    // error scenario: borrowing for an unknown reader is logged at ERROR level
     @Test
     void borrowingForUnknownReaderThrowsException() {
         assertThrows(ReaderNotFoundException.class,
                 () -> library.borrowBook(book1.getId(), 999),
-                "выдача книги несуществующему читателю должна выбрасывать исключение");
-        assertFalse(library.getBookById(book1.getId()).isBorrowed(), "книга должна остаться свободной");
+                "borrowing for an unknown reader must throw an exception");
+        assertFalse(library.getBookById(book1.getId()).isBorrowed(), "the book must remain free");
     }
 
-    // список доступных книг не содержит выданных экземпляров
     @Test
     void availableBooksAreReturned() {
         library.borrowBook(book1.getId(), reader1.getId());
 
         List<Book> available = library.getAvailableBooks();
-        assertEquals(2, available.size(), "должны остаться только свободные книги");
-        assertTrue(available.stream().noneMatch(Book::isBorrowed), "в списке не должно быть занятых книг");
+        assertEquals(2, available.size(), "only free books must be listed");
+        assertTrue(available.stream().noneMatch(Book::isBorrowed), "no borrowed book must be listed");
         assertTrue(available.stream().noneMatch(b -> b.getId() == book1.getId()),
-                "выданная книга не должна попадать в список доступных");
+                "the borrowed book must not appear among available books");
     }
 }

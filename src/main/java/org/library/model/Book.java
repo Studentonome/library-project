@@ -8,7 +8,7 @@ public class Book {
     private final String isbn;
     private final int year;
 
-    /** Идентификатор читателя, у которого книга на руках; null, если книга свободна. */
+    /** Reader id that currently holds the book; null if the book is free. */
     private Long readerId;
 
     public Book(long id, String title, String author, String isbn, int year) {
@@ -44,7 +44,7 @@ public class Book {
         return readerId;
     }
 
-    /** @return true, если книга находится на руках у читателя */
+    /** @return true if the book is held by a reader */
     public boolean isBorrowed() {
         return readerId != null;
     }

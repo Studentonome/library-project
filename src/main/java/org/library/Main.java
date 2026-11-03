@@ -15,93 +15,84 @@ public class Main {
         ReaderRepository readerRepository = new ReaderRepositoryImpl();
         Library library = new Library(bookRepository, readerRepository);
 
-        System.out.println("=== Сценарий работы библиотеки ===\n");
+        System.out.println("=== Library scenario ===\n");
 
-        Reader ivanov = new Reader(1, "T-001", "Иван Иванов", "+375-900-111-22-33", "ivanov@mail.ru");
-        Reader petrova = new Reader(2, "T-002", "Мария Петрова", "+375-900-444-55-66", null);
+        Reader ivanov = new Reader(1, "T-001", "Ivan Ivanov", "+375-900-111-22-33", "ivanov@mail.ru");
+        Reader petrova = new Reader(2, "T-002", "Maria Petrova", "+375-900-444-55-66", null);
         library.addReader(ivanov);
         library.addReader(petrova);
-        System.out.println("1. Зарегистрированы читатели:");
+        System.out.println("1. Registered readers:");
         System.out.println("   " + ivanov);
         System.out.println("   " + petrova);
 
-        Book book1 = new Book(1, "Война и мир", "Лев Толстой", "978-5-00000-001-1", 1869);
-        Book book2 = new Book(2, "Преступление и наказание", "Фёдор Достоевский", "978-5-00000-002-8", 1866);
-        Book book3 = new Book(3, "Мастер и Маргарита", "Михаил Булгаков", "978-5-00000-003-5", 1967);
+        Book book1 = new Book(1, "War and Peace", "Leo Tolstoy", "978-5-00000-001-1", 1869);
+        Book book2 = new Book(2, "Crime and Punishment", "Fyodor Dostoevsky", "978-5-00000-002-8", 1866);
+        Book book3 = new Book(3, "The Master and Margarita", "Mikhail Bulgakov", "978-5-00000-003-5", 1967);
         library.addBook(book1);
         library.addBook(book2);
         library.addBook(book3);
-        System.out.println("2. В фонд добавлены книги: " + library.getAllBooks().size() + " шт.");
+        System.out.println("2. Books added to the collection: " + library.getAllBooks().size());
         library.getAllBooks().forEach(b -> System.out.println("   " + b));
 
         System.out.println();
 
-        // 3. Выдача книги первому читателю — успех
         long bookId = 1;
         long firstReaderId = 1;
         library.borrowBook(bookId, firstReaderId);
         Book borrowed = library.getBookById(bookId);
-        System.out.println("3. Книга выдана первому читателю (успех):");
+        System.out.println("3. Book borrowed by the first reader (success):");
         System.out.println("   " + borrowed);
 
-        // 4. Попытка выдать занятую книгу другому читателю — провал
         try {
             library.borrowBook(bookId, 2);
-            System.out.println("4. НЕ ОЖИДАЛОСЬ: книга выдана второму читателю");
+            System.out.println("4. UNEXPECTED: book borrowed by the second reader");
         } catch (Exception e) {
-            System.out.println("4. Провал (занятую книгу нельзя выдать другому читателю):");
+            System.out.println("4. Failure (a borrowed book cannot be lent to another reader):");
             System.out.println("   " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
 
-        // 5. Попытка выдать ту же книгу снова первому читателю — провал
         try {
             library.borrowBook(bookId, firstReaderId);
-            System.out.println("5. НЕ ОЖИДАЛОСЬ: книга повторно выдана первому читателю");
+            System.out.println("5. UNEXPECTED: book borrowed again by the first reader");
         } catch (Exception e) {
-            System.out.println("5. Провал (книга уже на руках у первого читателя):");
+            System.out.println("5. Failure (the book is already held by the first reader):");
             System.out.println("   " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
 
-        // 6. Возврат книги первым читателем
         library.returnBook(bookId);
-        System.out.println("6. Книга возвращена в фонд:");
+        System.out.println("6. Book returned to the collection:");
         System.out.println("   " + library.getBookById(bookId));
 
-        // 7. Попытка выдать возвращённую книгу несуществующему читателю — провал
         try {
             library.borrowBook(bookId, 999);
-            System.out.println("7. НЕ ОЖИДАЛОСЬ: книга выдана несуществующему читателю");
+            System.out.println("7. UNEXPECTED: book borrowed by an unknown reader");
         } catch (Exception e) {
-            System.out.println("7. Провал (несуществующий читатель):");
+            System.out.println("7. Failure (unknown reader):");
             System.out.println("   " + e.getClass().getSimpleName() + ": " + e.getMessage());
         }
 
-        // 8. Попытка выдать возвращённую книгу второму читателю — успех
         library.borrowBook(bookId, 2);
-        System.out.println("8. Свободная книга выдана второму читателю (успех):");
+        System.out.println("8. Available book borrowed by the second reader (success):");
         System.out.println("   " + library.getBookById(bookId));
 
         System.out.println();
 
-        // 9. Просмотр фонда и выданных книг
-        System.out.println("9. Фонд (все книги):");
+        System.out.println("9. Collection (all books):");
         library.getAllBooks().forEach(b -> System.out.println("   " + b));
-        System.out.println("   Выданные книги:");
+        System.out.println("   Borrowed books:");
         library.getBorrowedBooks().forEach(b -> System.out.println("   " + b));
 
         System.out.println();
 
-        // 10. Проверка валидности ISBN у книг (Apache Commons Validator)
-        System.out.println("10. Проверка ISBN книг:");
+        System.out.println("10. ISBN validation:");
         library.getAllBooks().forEach(b ->
                 System.out.println("   \"" + b.getTitle() + "\" (" + b.getIsbn() + "): "
-                        + (library.isIsbnValid(b) ? "валиден" : "НЕВАЛИДЕН")));
+                        + (library.isIsbnValid(b) ? "valid" : "INVALID")));
 
-        // 11. Проверка валидности email у читателей (Apache Commons Validator)
-        System.out.println("11. Проверка email читателей:");
+        System.out.println("11. Reader email validation:");
         System.out.println("   " + ivanov.getFullName() + ": "
-                + (library.isEmailValid(ivanov) ? "корректен" : "некорректен"));
+                + (library.isEmailValid(ivanov) ? "valid" : "invalid"));
         System.out.println("   " + petrova.getFullName() + ": "
-                + (library.isEmailValid(petrova) ? "корректен" : "некорректен"));
+                + (library.isEmailValid(petrova) ? "valid" : "invalid"));
     }
 }

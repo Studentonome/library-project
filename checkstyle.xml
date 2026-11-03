@@ -4,8 +4,8 @@
         "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <!--
-    Правила статического анализа проекта библиотеки.
-    Проверка запускается командой: mvn checkstyle:check
+    Static analysis rules for the library project.
+    Run with: mvn checkstyle:check
 -->
 <module name="Checker">
     <property name="charset" value="UTF-8"/>
@@ -24,7 +24,7 @@
 
     <module name="RegexpSingleline">
         <property name="format" value="\s+$"/>
-        <property name="message" value="В конце строки не должно быть пробелов"/>
+        <property name="message" value="Trailing whitespace is not allowed"/>
     </module>
 
     <module name="TreeWalker">

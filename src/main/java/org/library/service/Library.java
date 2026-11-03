@@ -38,42 +38,43 @@ public class Library {
     }
 
     public void borrowBook(long bookId, long readerId) {
-        LOG.info("Запрос на выдачу книги: bookId={}, readerId={}", bookId, readerId);
+        LOG.info("Borrow request: bookId={}, readerId={}", bookId, readerId);
 
         try {
             Book book = bookRepository.findById(bookId);
             readerRepository.findById(readerId);
 
             if (book.isBorrowed()) {
-                LOG.warn("Книга недоступна: bookId={} уже выдана readerId={}", bookId, book.getReaderId());
+                LOG.warn("Book is unavailable: bookId={} is already borrowed by readerId={}",
+                        bookId, book.getReaderId());
                 throw new BookAlreadyBorrowedException(bookId);
             }
 
             book.borrowTo(readerId);
             bookRepository.update(book);
-            LOG.info("Книга выдана: bookId={}, readerId={}", bookId, readerId);
+            LOG.info("Book borrowed: bookId={}, readerId={}", bookId, readerId);
         } catch (BookNotFoundException | ReaderNotFoundException e) {
-            LOG.error("Ошибка выдачи книги: bookId={}, readerId={}", bookId, readerId, e);
+            LOG.error("Borrowing failed: bookId={}, readerId={}", bookId, readerId, e);
             throw e;
         }
     }
 
     public void returnBook(long bookId) {
-        LOG.info("Запрос на возврат книги: bookId={}", bookId);
+        LOG.info("Return request: bookId={}", bookId);
 
         try {
             Book book = bookRepository.findById(bookId);
 
             if (!book.isBorrowed()) {
-                LOG.warn("Книга не может быть возвращена: bookId={} не находится на руках", bookId);
+                LOG.warn("Return rejected: bookId={} is not borrowed", bookId);
                 throw new BookNotBorrowedException(bookId);
             }
 
             book.returnToFund();
             bookRepository.update(book);
-            LOG.info("Книга возвращена в фонд: bookId={}", bookId);
+            LOG.info("Book returned to the collection: bookId={}", bookId);
         } catch (BookNotFoundException e) {
-            LOG.error("Ошибка возврата книги: bookId={}", bookId, e);
+            LOG.error("Returning failed: bookId={}", bookId, e);
             throw e;
         }
     }
@@ -112,19 +113,19 @@ public class Library {
                 .toList();
     }
 
-    /** @return список книг, доступных для выдачи (книги, не находящиеся на руках) */
+    /** @return books available for lending (not held by any reader) */
     public List<Book> getAvailableBooks() {
         return bookRepository.getAll().stream()
                 .filter(book -> !book.isBorrowed())
                 .toList();
     }
 
-    /** @return true, если ISBN книги корректен (по стандарту ISBN-10/ISBN-13) */
+    /** @return true if the book ISBN is valid (per ISBN-10/ISBN-13) */
     public boolean isIsbnValid(Book book) {
         return ISBN_VALIDATOR.isValid(book.getIsbn());
     }
 
-    /** @return true, если email читателя корректен; null/пустое значение допустимо (email не указан) */
+    /** @return true if the reader email is valid; null or blank value is allowed (email not specified) */
     public boolean isEmailValid(Reader reader) {
         return reader.getEmail() == null
                 || reader.getEmail().isBlank()
