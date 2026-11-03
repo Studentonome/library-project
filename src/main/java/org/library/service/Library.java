@@ -7,10 +7,16 @@ import org.library.model.Reader;
 import org.library.repository.BookRepository;
 import org.library.repository.ReaderRepository;
 import org.library.exception.BookAlreadyBorrowedException;
+import org.library.exception.BookNotFoundException;
 import org.library.exception.BookNotBorrowedException;
+import org.library.exception.ReaderNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
 
 public class Library {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Library.class);
 
     private static final ISBNValidator ISBN_VALIDATOR = ISBNValidator.getInstance();
     private static final EmailValidator EMAIL_VALIDATOR = EmailValidator.getInstance();
@@ -32,26 +38,44 @@ public class Library {
     }
 
     public void borrowBook(long bookId, long readerId) {
-        Book book = bookRepository.findById(bookId);
-        readerRepository.findById(readerId);
+        LOG.info("Запрос на выдачу книги: bookId={}, readerId={}", bookId, readerId);
 
-        if (book.isBorrowed()) {
-            throw new BookAlreadyBorrowedException(bookId);
+        try {
+            Book book = bookRepository.findById(bookId);
+            readerRepository.findById(readerId);
+
+            if (book.isBorrowed()) {
+                LOG.warn("Книга недоступна: bookId={} уже выдана readerId={}", bookId, book.getReaderId());
+                throw new BookAlreadyBorrowedException(bookId);
+            }
+
+            book.borrowTo(readerId);
+            bookRepository.update(book);
+            LOG.info("Книга выдана: bookId={}, readerId={}", bookId, readerId);
+        } catch (BookNotFoundException | ReaderNotFoundException e) {
+            LOG.error("Ошибка выдачи книги: bookId={}, readerId={}", bookId, readerId, e);
+            throw e;
         }
-
-        book.borrowTo(readerId);
-        bookRepository.update(book);
     }
 
     public void returnBook(long bookId) {
-        Book book = bookRepository.findById(bookId);
+        LOG.info("Запрос на возврат книги: bookId={}", bookId);
 
-        if (!book.isBorrowed()) {
-            throw new BookNotBorrowedException(bookId);
+        try {
+            Book book = bookRepository.findById(bookId);
+
+            if (!book.isBorrowed()) {
+                LOG.warn("Книга не может быть возвращена: bookId={} не находится на руках", bookId);
+                throw new BookNotBorrowedException(bookId);
+            }
+
+            book.returnToFund();
+            bookRepository.update(book);
+            LOG.info("Книга возвращена в фонд: bookId={}", bookId);
+        } catch (BookNotFoundException e) {
+            LOG.error("Ошибка возврата книги: bookId={}", bookId, e);
+            throw e;
         }
-
-        book.returnToFund();
-        bookRepository.update(book);
     }
 
     public Book getBookById(long id) {

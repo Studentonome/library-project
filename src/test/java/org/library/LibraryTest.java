@@ -9,6 +9,7 @@ import org.library.repository.ReaderRepositoryImpl;
 import org.library.service.Library;
 import org.library.exception.BookAlreadyBorrowedException;
 import org.library.exception.BookNotBorrowedException;
+import org.library.exception.ReaderNotFoundException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -98,6 +99,15 @@ class LibraryTest {
         assertThrows(BookNotBorrowedException.class,
                 () -> library.returnBook(book1.getId()),
                 "возврат свободной книги должен выбрасывать исключение");
+    }
+
+    // сценарий ошибки: выдача книги несуществующему читателю журналируется уровнем ERROR
+    @Test
+    void borrowingForUnknownReaderThrowsException() {
+        assertThrows(ReaderNotFoundException.class,
+                () -> library.borrowBook(book1.getId(), 999),
+                "выдача книги несуществующему читателю должна выбрасывать исключение");
+        assertFalse(library.getBookById(book1.getId()).isBorrowed(), "книга должна остаться свободной");
     }
 
     // список доступных книг не содержит выданных экземпляров
