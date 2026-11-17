@@ -2,18 +2,27 @@ package org.library;
 
 import org.library.model.Book;
 import org.library.model.Reader;
+import org.library.monitoring.MetricsServer;
 import org.library.repository.BookRepository;
 import org.library.repository.BookRepositoryImpl;
 import org.library.repository.ReaderRepository;
 import org.library.repository.ReaderRepositoryImpl;
 import org.library.service.Library;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         BookRepository bookRepository = new BookRepositoryImpl();
         ReaderRepository readerRepository = new ReaderRepositoryImpl();
         Library library = new Library(bookRepository, readerRepository);
+
+        MetricsServer.start();
+        System.out.println("Metrics endpoint: http://localhost:" + MetricsServer.PORT + "/metrics\n");
 
         System.out.println("=== Library scenario ===\n");
 
@@ -94,5 +103,46 @@ public class Main {
                 + (library.isEmailValid(ivanov) ? "valid" : "invalid"));
         System.out.println("   " + petrova.getFullName() + ": "
                 + (library.isEmailValid(petrova) ? "valid" : "invalid"));
+
+        System.out.println();
+        System.out.println("Metrics are served at http://localhost:" + MetricsServer.PORT + "/metrics");
+        System.out.println("Commands: borrow <bookId> <readerId> | return <bookId> | quit");
+        commandLoop(library);
+        MetricsServer.stop();
+        System.out.println("The application is stopped.");
+    }
+
+    private static void commandLoop(Library library) throws IOException {
+        BufferedReader input = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+        String line = input.readLine();
+
+        while (line != null) {
+            if (!line.isBlank() && !handleCommand(library, line)) {
+                return;
+            }
+            line = input.readLine();
+        }
+    }
+
+    /** @return false when the application should stop */
+    private static boolean handleCommand(Library library, String line) {
+        String[] parts = line.trim().split("\\s+");
+
+        try {
+            if ("borrow".equals(parts[0]) && parts.length == 3) {
+                library.borrowBook(Long.parseLong(parts[1]), Long.parseLong(parts[2]));
+            } else if ("return".equals(parts[0]) && parts.length == 2) {
+                library.returnBook(Long.parseLong(parts[1]));
+            } else if ("quit".equals(parts[0])) {
+                return false;
+            } else {
+                System.out.println("Commands: borrow <bookId> <readerId> | return <bookId> | quit");
+                return true;
+            }
+            System.out.println("OK");
+        } catch (RuntimeException e) {
+            System.out.println("Operation failed: " + e.getMessage());
+        }
+        return true;
     }
 }

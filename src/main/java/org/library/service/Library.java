@@ -1,9 +1,11 @@
 package org.library.service;
 
+import io.micrometer.core.instrument.Timer;
 import org.apache.commons.validator.routines.EmailValidator;
 import org.apache.commons.validator.routines.ISBNValidator;
 import org.library.model.Book;
 import org.library.model.Reader;
+import org.library.monitoring.LibraryMetrics;
 import org.library.repository.BookRepository;
 import org.library.repository.ReaderRepository;
 import org.library.exception.BookAlreadyBorrowedException;
@@ -39,6 +41,8 @@ public class Library {
 
     public void borrowBook(long bookId, long readerId) {
         LOG.info("Borrow request: bookId={}, readerId={}", bookId, readerId);
+        LibraryMetrics.operationStarted();
+        Timer.Sample sample = LibraryMetrics.startTimer();
 
         try {
             Book book = bookRepository.findById(bookId);
@@ -47,35 +51,50 @@ public class Library {
             if (book.isBorrowed()) {
                 LOG.warn("Book is unavailable: bookId={} is already borrowed by readerId={}",
                         bookId, book.getReaderId());
+                LibraryMetrics.unavailableBookAttempt();
+                LibraryMetrics.operationFailed();
                 throw new BookAlreadyBorrowedException(bookId);
             }
 
             book.borrowTo(readerId);
             bookRepository.update(book);
+            LibraryMetrics.bookBorrowed();
+            LibraryMetrics.operationSucceeded();
             LOG.info("Book borrowed: bookId={}, readerId={}", bookId, readerId);
         } catch (BookNotFoundException | ReaderNotFoundException e) {
             LOG.error("Borrowing failed: bookId={}, readerId={}", bookId, readerId, e);
+            LibraryMetrics.operationFailed();
             throw e;
+        } finally {
+            LibraryMetrics.stopTimer(sample);
         }
     }
 
     public void returnBook(long bookId) {
         LOG.info("Return request: bookId={}", bookId);
+        LibraryMetrics.operationStarted();
+        Timer.Sample sample = LibraryMetrics.startTimer();
 
         try {
             Book book = bookRepository.findById(bookId);
 
             if (!book.isBorrowed()) {
                 LOG.warn("Return rejected: bookId={} is not borrowed", bookId);
+                LibraryMetrics.operationFailed();
                 throw new BookNotBorrowedException(bookId);
             }
 
             book.returnToFund();
             bookRepository.update(book);
+            LibraryMetrics.bookReturned();
+            LibraryMetrics.operationSucceeded();
             LOG.info("Book returned to the collection: bookId={}", bookId);
         } catch (BookNotFoundException e) {
             LOG.error("Returning failed: bookId={}", bookId, e);
+            LibraryMetrics.operationFailed();
             throw e;
+        } finally {
+            LibraryMetrics.stopTimer(sample);
         }
     }
 
